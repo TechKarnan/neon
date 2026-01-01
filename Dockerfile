@@ -1,22 +1,26 @@
-# Use OpenJDK 17
-FROM openjdk:17-jdk-slim
+# Use a valid OpenJDK 17 image
+FROM eclipse-temurin:17-jdk
 
 # Set working directory
 WORKDIR /app
 
-# Copy pom and project files
+# Copy Maven wrapper & pom first (to cache dependencies)
+COPY mvnw .
+COPY .mvn .mvn
 COPY pom.xml .
+
+# Give mvnw execute permission
+RUN chmod +x mvnw
+
+# Build the Spring Boot jar (skip tests for faster build)
 COPY src ./src
+RUN ./mvnw clean package -DskipTests
 
-# Build the Spring Boot jar
-RUN apt-get update && apt-get install -y maven \
-    && mvn clean package -DskipTests
-
-# Copy the jar
+# Copy the jar to a known name
 RUN cp target/*.jar app.jar
 
 # Expose port
 EXPOSE 8080
 
-# Run the app
+# Run the Spring Boot app
 ENTRYPOINT ["java","-jar","/app/app.jar"]
